@@ -2,6 +2,10 @@
 
 Upload a resume PDF, compare it to a job description, and get an explainable suitability score, a skill gap analysis and tailored interview questions.
 
+<p align="center">
+  <img src="demo.svg" alt="Animated example: a resume is read, skills are matched against a job description, and a score out of 100 is computed in code" width="760">
+</p>
+
 **Stack:** Python, FastAPI, SQLite (SQLAlchemy), pdfplumber, scikit-learn, optional LLM (Anthropic API), vanilla JS frontend.
 
 ## Why the score is trustworthy
