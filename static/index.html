@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Resume Screening Assistant</title>
+<style>
+  :root{--bg:#f6f7fb;--card:#fff;--text:#1b1f2a;--muted:#6b7280;--line:#e5e7eb;--accent:#5b5bf0;--ok:#16a34a;--bad:#dc2626;--okbg:#dcfce7;--badbg:#fee2e2;}
+  @media (prefers-color-scheme:dark){:root{--bg:#0f1117;--card:#181b24;--text:#e8eaf0;--muted:#9aa3b2;--line:#2a2f3b;--accent:#8b8bff;--okbg:#12361f;--badbg:#3b1717;}}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
+  .wrap{max-width:1000px;margin:0 auto;padding:28px 16px 60px}
+  h1{font-size:24px;margin:0 0 4px} .sub{color:var(--muted);margin:0 0 22px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px} @media(max-width:760px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+  label{display:block;font-size:13px;color:var(--muted);margin:0 0 6px}
+  input[type=text],textarea{width:100%;background:transparent;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit}
+  textarea{min-height:190px;resize:vertical}
+  .drop{border:2px dashed var(--line);border-radius:12px;padding:22px;text-align:center;color:var(--muted);cursor:pointer}
+  .drop.on{border-color:var(--accent);color:var(--text)}
+  button{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:12px 18px;font:inherit;font-weight:600;cursor:pointer;width:100%;margin-top:14px}
+  button:disabled{opacity:.6;cursor:wait}
+  .err{color:var(--bad);margin-top:10px;font-size:14px}
+  #result{display:none;margin-top:18px}
+  .top{display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+  .gauge{--p:0;width:130px;height:130px;border-radius:50%;display:grid;place-items:center;
+    background:conic-gradient(var(--c,var(--accent)) calc(var(--p)*1%),var(--line) 0)}
+  .gauge div{width:100px;height:100px;border-radius:50%;background:var(--card);display:grid;place-items:center;text-align:center}
+  .gauge b{font-size:28px;line-height:1}.gauge span{font-size:11px;color:var(--muted)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 14px}
+  .chip{padding:4px 10px;border-radius:999px;font-size:13px}
+  .ok{background:var(--okbg);color:var(--ok)} .no{background:var(--badbg);color:var(--bad)}
+  .soft{background:var(--line);color:var(--muted)}
+  h3{font-size:14px;margin:16px 0 4px}
+  .bars div.row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:8px}
+  .bar{height:8px;background:var(--line);border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--accent)}
+  ol{padding-left:20px;margin:6px 0} li{margin:6px 0}
+  .note{font-size:12px;color:var(--muted);margin-top:16px}
+
+  :root{--warn:#b45309;--warnbg:#fef3c7}
+  @media (prefers-color-scheme:dark){:root{--warn:#fbbf24;--warnbg:#3a2e10}}
+  select{width:100%;background:transparent;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit}
+  select option{color:#111}
+  .tabs{display:flex;gap:8px;margin:0 0 18px}
+  .tabbtn{width:auto;margin:0;padding:9px 16px;background:transparent;color:var(--muted);border:1px solid var(--line)}
+  .tabbtn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  #rank{display:none}
+  #rank .card{margin-top:16px}
+  #rank h2{font-size:16px;margin:0 0 12px}
+  #rank textarea{min-height:150px}
+  #rank button{width:auto;margin-top:0;padding:10px 16px}
+  #rank button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+  #rank p{margin:12px 0 0}
+  #rank .msg{font-size:14px;margin-top:10px} #rank .err{margin-top:10px}
+  #rank .muted{color:var(--muted)}
+  #rank table{width:100%;border-collapse:collapse;font-size:14px}
+  #rank th{text-align:left;color:var(--muted);font-weight:500;padding:8px;border-bottom:1px solid var(--line)}
+  #rank td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+  #rank tr.cand{cursor:pointer} #rank tr.cand:hover{background:var(--line)}
+  #rank .badge{display:inline-block;min-width:46px;text-align:center;padding:3px 8px;border-radius:8px;font-weight:700}
+  #rank .b-hi{background:var(--okbg);color:var(--ok)} #rank .b-mid{background:var(--warnbg);color:var(--warn)} #rank .b-lo{background:var(--badbg);color:var(--bad)}
+  #rank .detail{padding:6px 8px 14px} #rank .detail h4{margin:12px 0 4px;font-size:13px} #rank .detail ol{margin:4px 0;padding-left:20px}
+  #rank .bar{height:6px;background:var(--line);border-radius:6px;overflow:hidden;width:90px} #rank .bar i{display:block;height:100%;background:var(--accent)}
+  #rank .row-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+
+  /* ===== Animations ===== */
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @keyframes popIn{0%{opacity:0;transform:scale(.6)}70%{opacity:1;transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
+  @keyframes growX{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  @keyframes rowIn{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+  @keyframes shake{0%,100%{transform:none}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+  @keyframes drift{from{transform:translate3d(-2%,-1%,0) scale(1)}to{transform:translate3d(2%,2%,0) scale(1.08)}}
+  @keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(139,139,255,.0)}50%{box-shadow:0 0 0 6px rgba(139,139,255,.18)}}
+
+  body::before{content:"";position:fixed;inset:-20%;z-index:-1;pointer-events:none;
+    background:radial-gradient(40% 30% at 18% 8%,rgba(91,91,240,.20),transparent 70%),
+               radial-gradient(35% 30% at 88% 4%,rgba(22,163,74,.14),transparent 70%);
+    animation:drift 18s ease-in-out infinite alternate}
+  h1,.sub{animation:fadeUp .6s cubic-bezier(.2,.8,.2,1) both} .sub{animation-delay:.08s}
+  .card{animation:fadeUp .55s cubic-bezier(.2,.8,.2,1) both}
+  .grid .card:nth-child(2){animation-delay:.1s}
+  #single,#rank{animation:fadeUp .4s cubic-bezier(.2,.8,.2,1) both}
+
+  .tabs{border-bottom:1px solid var(--line);gap:6px}
+  .tabbtn{background:none;border:0;border-bottom:2px solid transparent;border-radius:0;color:var(--muted);
+    padding:10px 14px;margin:0 0 -1px;width:auto;box-shadow:none;transition:color .25s,border-color .25s}
+  .tabbtn:hover:not(.active){color:var(--text);transform:none;box-shadow:none;filter:none}
+  .tabbtn.active{background:none;color:var(--text);border-color:var(--accent)}
+
+  button{transition:transform .15s,box-shadow .2s,filter .2s,background-color .2s}
+  button:hover:not(:disabled):not(.tabbtn){transform:translateY(-1px);box-shadow:0 8px 20px rgba(91,91,240,.35);filter:brightness(1.07)}
+  button:active:not(:disabled):not(.tabbtn){transform:translateY(0) scale(.98);box-shadow:none}
+  button.loading{background-image:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.28) 50%,transparent 70%);
+    background-size:200% 100%;animation:shimmer 1.4s linear infinite}
+  button.loading::after{content:"";display:inline-block;width:14px;height:14px;margin-left:10px;vertical-align:-2px;
+    border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+  #r_progress.busy::before{content:"";display:inline-block;width:12px;height:12px;margin-right:8px;vertical-align:-1px;
+    border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+
+  .drop{transition:border-color .25s,color .25s,transform .2s,background-color .25s}
+  .drop:hover{border-color:var(--accent);color:var(--text);transform:translateY(-1px)}
+  .drop.on{animation:glow 2.2s ease-in-out infinite}
+  input[type=text],textarea,select{transition:border-color .2s,box-shadow .2s}
+  input[type=text]:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(139,139,255,.2)}
+  .shake{animation:shake .4s}
+
+  .chip{animation:popIn .45s cubic-bezier(.2,.9,.3,1.2) both;animation-delay:calc(var(--i,0) * 45ms + 150ms)}
+  .bars .bar i{transform-origin:left;animation:growX 1s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 120ms + 300ms)}
+  #qs li{animation:fadeUp .5s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 90ms + 700ms)}
+  .gauge{transition:filter .4s} .gauge:hover{filter:drop-shadow(0 0 10px rgba(22,163,74,.45))}
+
+  #rank tr.cand{animation:rowIn .45s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 70ms);transition:background-color .2s}
+  #rank .badge{animation:popIn .5s cubic-bezier(.2,.9,.3,1.2) both;animation-delay:calc(var(--i,0) * 70ms + 250ms)}
+  #rank .bar i{transform-origin:left;animation:growX .9s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 70ms + 300ms)}
+  #rank tr:not(.cand) .detail{animation:fadeUp .3s ease both}
+
+
+  /* ===== Theme: black + royal blue, green buttons ===== */
+  :root{color-scheme:dark;--bg:#03050b;--card:#0a0f1f;--text:#e9eeff;--muted:#8f9bc0;--line:#1b2a55;
+    --accent:#4169e1;--accent2:#6f8dff;--ok:#4ade80;--okbg:rgba(34,197,94,.14);--bad:#ff6b7a;--badbg:rgba(255,80,100,.14);
+    --warn:#fbbf24;--warnbg:rgba(251,191,36,.14);--green:#22c55e;--green2:#15a34a}
+  @keyframes titleFlow{to{background-position:300% 0}}
+  @keyframes sweep{from{background-position:200% 0}to{background-position:-200% 0}}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  @keyframes gridMove{to{background-position:48px 48px}}
+  @keyframes greenPulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.55),0 6px 18px rgba(34,197,94,.25)}50%{box-shadow:0 0 0 9px rgba(34,197,94,0),0 6px 22px rgba(34,197,94,.4)}}
+  @keyframes shimmer2{from{background-position:200% 0,0 0}to{background-position:-200% 0,0 0}}
+  @keyframes barShine{from{background-position:200% 0}to{background-position:-200% 0}}
+  @keyframes ringPulse{0%,100%{filter:drop-shadow(0 0 10px rgba(65,105,225,.5))}50%{filter:drop-shadow(0 0 22px rgba(111,141,255,.9))}}
+  @keyframes orb{from{background-position:0% 0%,100% 100%,50% 50%}to{background-position:12% 18%,88% 82%,40% 60%}}
+
+  html{background:var(--bg)}
+  body{background:transparent}
+  ::selection{background:var(--accent);color:#fff}
+  ::-webkit-scrollbar{width:10px;height:10px} ::-webkit-scrollbar-thumb{background:#1f3270;border-radius:8px} ::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+  ::-webkit-scrollbar-track{background:#070b17}
+
+  body::before{background:radial-gradient(40% 32% at 16% 6%,rgba(65,105,225,.34),transparent 70%),
+    radial-gradient(34% 30% at 90% 4%,rgba(34,197,94,.10),transparent 70%),
+    radial-gradient(60% 30% at 50% 108%,rgba(65,105,225,.22),transparent 70%)}
+  body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.55;
+    background-image:linear-gradient(rgba(65,105,225,.10) 1px,transparent 1px),linear-gradient(90deg,rgba(65,105,225,.10) 1px,transparent 1px);
+    background-size:48px 48px;animation:gridMove 14s linear infinite;
+    -webkit-mask-image:radial-gradient(ellipse at 50% 0%,#000 15%,transparent 72%);mask-image:radial-gradient(ellipse at 50% 0%,#000 15%,transparent 72%)}
+
+  h1{font-size:30px;letter-spacing:.2px;color:#fff;background:linear-gradient(90deg,#fff,#8aa4ff,#4169e1,#8aa4ff,#fff);background-size:300% 100%;
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    animation:fadeUp .6s cubic-bezier(.2,.8,.2,1) both,titleFlow 7s linear infinite}
+  .sub{color:var(--muted)}
+
+  .card{position:relative;overflow:hidden;background:linear-gradient(180deg,rgba(65,105,225,.09),transparent 45%),var(--card);
+    border:1px solid var(--line);box-shadow:0 12px 40px rgba(0,0,0,.55);transition:border-color .3s,box-shadow .3s}
+  .card:hover{border-color:rgba(111,141,255,.55);box-shadow:0 12px 44px rgba(0,0,0,.6),0 0 28px rgba(65,105,225,.22)}
+  .card::before{content:"";position:absolute;left:0;top:0;width:100%;height:2px;opacity:.9;
+    background:linear-gradient(90deg,transparent,var(--accent2),var(--green),var(--accent2),transparent);background-size:200% 100%;animation:sweep 5s linear infinite}
+
+  .tabs{position:relative}
+  .tabbtn{font-weight:600}
+  .tabbtn.active{border-color:transparent;color:#fff;text-shadow:0 0 14px rgba(111,141,255,.8)}
+  .tabline{position:absolute;bottom:-1px;left:0;width:0;height:3px;border-radius:3px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));box-shadow:0 0 14px var(--accent2);
+    transition:left .4s cubic-bezier(.2,.8,.2,1),width .4s cubic-bezier(.2,.8,.2,1)}
+
+  input[type=text],textarea,select{background:#060a16;border:1px solid var(--line);color:var(--text)}
+  input[type=text]::placeholder,textarea::placeholder{color:#5c6a95}
+  input[type=text]:focus,textarea:focus,select:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(65,105,225,.30),0 0 18px rgba(65,105,225,.25)}
+  select option{background:#0a0f1f;color:#e9eeff}
+
+  .drop{border:2px dashed rgba(111,141,255,.45);background:radial-gradient(circle at 50% 0,rgba(65,105,225,.14),transparent 70%)}
+  .drop:hover{border-color:var(--accent2);background:radial-gradient(circle at 50% 0,rgba(65,105,225,.26),transparent 72%)}
+  .drop:not(.on)::before{content:"\2191";display:block;font-size:24px;line-height:1.1;margin-bottom:4px;color:var(--accent2);animation:bob 1.6s ease-in-out infinite}
+  .drop.on{border-color:var(--green);color:var(--text);animation:none;box-shadow:0 0 0 0 rgba(34,197,94,.4);}
+  .drop.on{animation:greenPulse 2.4s ease-in-out infinite}
+
+  button{background-color:var(--green);background-image:linear-gradient(135deg,var(--green),var(--green2));color:#02130a;font-weight:700;letter-spacing:.2px}
+  button:hover:not(:disabled):not(.tabbtn){box-shadow:0 10px 26px rgba(34,197,94,.5);filter:brightness(1.08)}
+  #go:not(:disabled):not(.loading),#r_saveJob,#r_go:not(:disabled):not(.loading){animation:greenPulse 2.6s ease-in-out infinite}
+  #go:hover:not(:disabled),#r_saveJob:hover,#r_go:hover:not(:disabled){animation:none}
+  button.loading{background-image:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.4) 50%,transparent 70%),linear-gradient(135deg,var(--green),var(--green2));
+    background-size:200% 100%,100% 100%;animation:shimmer2 1.4s linear infinite}
+  button.loading::after{border-color:rgba(2,19,10,.3);border-top-color:#02130a}
+  button:disabled{opacity:.55;filter:saturate(.7)}
+  #rank button.ghost{background:transparent;color:var(--accent2);border:1px solid var(--accent);animation:none}
+  #rank button.ghost:hover{background:rgba(65,105,225,.18);box-shadow:0 0 22px rgba(65,105,225,.45);filter:none}
+
+  .ok{background:rgba(34,197,94,.14);color:#4ade80;border:1px solid rgba(34,197,94,.35)}
+  .no{background:rgba(255,80,100,.13);color:#ff7a88;border:1px solid rgba(255,80,100,.35)}
+  .soft{background:rgba(65,105,225,.16);color:#9db4ff;border:1px solid rgba(111,141,255,.35)}
+  .chip{box-shadow:0 0 12px rgba(0,0,0,.25)} .chip:hover{transform:translateY(-2px) scale(1.04);transition:transform .15s}
+  h3,#rank h2{color:#fff} #rank h2{letter-spacing:.2px}
+  .note,.muted{color:var(--muted)}
+
+  .gauge{filter:drop-shadow(0 0 12px rgba(65,105,225,.5));background:conic-gradient(var(--c,var(--accent2)) calc(var(--p)*1%),#0f1a3a 0)}
+  .gauge:hover{filter:drop-shadow(0 0 22px rgba(111,141,255,.85))} .gauge.done{animation:ringPulse 2.8s ease-in-out infinite}
+  .gauge b{background:linear-gradient(180deg,#fff,#9db4ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+
+  .bar{background:#0e1838}
+  .bars .bar i,#rank .bar i{background:linear-gradient(90deg,var(--accent),var(--accent2),#b4c6ff,var(--accent2),var(--accent));background-size:200% 100%}
+  .bars .bar i{animation:growX 1s cubic-bezier(.2,.8,.2,1) both,barShine 3s linear infinite;animation-delay:calc(var(--i,0) * 120ms + 300ms),1.5s}
+  #rank .bar i{animation:growX .9s cubic-bezier(.2,.8,.2,1) both,barShine 3s linear infinite;animation-delay:calc(var(--i,0) * 70ms + 300ms),1.5s}
+
+  #rank th{color:var(--accent2);text-transform:uppercase;font-size:11px;letter-spacing:.8px}
+  #rank td,#rank th{border-bottom-color:var(--line)}
+  #rank tr.cand:hover{background:rgba(65,105,225,.14)}
+  #rank tr.cand:hover td:first-child{box-shadow:inset 3px 0 0 var(--accent2)}
+  .err,#r_jobErr{color:var(--bad)}
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.001ms !important;animation-delay:0ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>AI Resume Screening Assistant</h1>
+  <p class="sub">Score a single resume, or save a job and rank many candidates against it.</p>
+  <div class="tabs">
+    <button class="tabbtn active" data-t="single">Single resume check</button>
+    <button class="tabbtn" data-t="rank" id="tabRank">Candidate ranking</button>
+    <span class="tabline" id="tabline"></span>
+  </div>
+
+  <div id="single">
+
+  <div class="grid">
+    <div class="card">
+      <label>Resume (PDF, max 5 MB)</label>
+      <div class="drop" id="drop">Click or drop a PDF here</div>
+      <input type="file" id="file" accept="application/pdf" hidden>
+    </div>
+    <div class="card">
+      <label for="title">Job title</label>
+      <input type="text" id="title" placeholder="Junior Python Developer">
+      <label for="jd" style="margin-top:12px">Job description</label>
+      <textarea id="jd" placeholder="Paste the full JD. Put 'Nice to have' skills under their own heading so they are scored separately."></textarea>
+    </div>
+  </div>
+  <button id="go">Analyze resume</button>
+  <div class="err" id="err"></div>
+
+  <div class="card" id="result">
+    <div class="top">
+      <div class="gauge" id="gauge"><div><p style="margin:0"><b id="score">0</b><br><span id="label"></span></p></div></div>
+      <div style="flex:1;min-width:240px"><h3 style="margin-top:0" id="who"></h3><p id="summary" style="margin:6px 0"></p></div>
+    </div>
+    <h3>Matched skills</h3><div class="chips" id="matched"></div>
+    <h3>Missing required skills</h3><div class="chips" id="missing"></div>
+    <h3>Missing nice-to-have skills</h3><div class="chips" id="missingNice"></div>
+    <h3>Score breakdown</h3><div class="bars" id="bars"></div>
+    <h3>Suggested interview questions</h3><ol id="qs"></ol>
+    <p class="note">Decision support only. Review the resume yourself; do not use this score as an automatic rejection.</p>
+  </div>
+</div>
+
+  <div id="rank">
+
+  <div class="card">
+    <h2>1. Choose or create a job</h2>
+    <label for="r_jobSel">Saved jobs</label>
+    <select id="r_jobSel"></select>
+    <p class="muted" style="margin:14px 0 8px">or create a new one</p>
+    <div class="grid">
+      <div><label for="r_title">Job title</label><input type="text" id="r_title" placeholder="Python Backend Developer"></div>
+      <div></div>
+    </div>
+    <label for="r_jd" style="margin-top:12px">Job description</label>
+    <textarea id="r_jd" placeholder="Paste the full JD. Put 'Nice to have' skills under their own heading."></textarea>
+    <p><button id="r_saveJob">Save job</button></p>
+    <div class="msg err" id="r_jobErr"></div>
+    <div id="r_jobInfo" style="display:none">
+      <h2 id="r_jobTitle" style="margin-top:14px"></h2>
+      <div class="muted" style="font-size:13px">Required skills</div><div class="chips" id="r_reqChips"></div>
+      <div class="muted" style="font-size:13px">Nice-to-have skills</div><div class="chips" id="r_niceChips"></div>
+      <div class="muted" id="r_yearsInfo" style="font-size:13px"></div>
+    </div>
+  </div>
+
+  <div class="card" id="r_uploadCard" style="display:none">
+    <h2>2. Upload resumes (PDF)</h2>
+    <div class="drop" id="r_drop">Click or drop one or more PDFs here</div>
+    <input type="file" id="r_files" accept="application/pdf" multiple hidden>
+    <p><button id="r_go" disabled>Analyze and rank</button></p>
+    <div class="msg" id="r_progress"></div>
+    <div class="msg err" id="r_uploadErr"></div>
+  </div>
+
+  <div class="card" id="r_rankCard" style="display:none">
+    <div class="row-top"><h2 style="margin:0">3. Ranked candidates</h2><button class="ghost" id="r_csv">Download CSV</button></div>
+    <p class="muted" id="r_rankEmpty" style="display:none">No candidates yet for this job.</p>
+    <table id="r_table"><thead><tr><th>#</th><th>Candidate</th><th>Score</th><th>Required</th><th>Experience</th><th>Fit</th></tr></thead><tbody id="r_rows"></tbody></table>
+    <p class="note">Click a row for details. Decision support only. Review resumes yourself and do not use scores as automatic rejections.</p>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+let file = null;
+const drop = $("drop"), input = $("file");
+drop.onclick = () => input.click();
+input.onchange = () => setFile(input.files[0]);
+drop.ondragover = e => { e.preventDefault(); drop.classList.add("on"); };
+drop.ondragleave = () => drop.classList.remove("on");
+drop.ondrop = e => { e.preventDefault(); setFile(e.dataTransfer.files[0]); };
+function setFile(f){ file = f || null; drop.textContent = file ? file.name : "Click or drop a PDF here"; drop.classList.toggle("on", !!file); }
+
+const chips = (el, items, cls) => { el.innerHTML = ""; if(!items.length){el.innerHTML='<span class="note">None</span>';return;}
+  items.forEach((s, i) => { const c = document.createElement("span"); c.className = "chip " + cls; c.textContent = s; c.style.setProperty("--i", i); el.appendChild(c); }); };
+
+$("go").onclick = async () => {
+  $("err").textContent = "";
+  if(!file) return $("err").textContent = "Please choose a PDF resume.";
+  if($("jd").value.trim().length < 30) return $("err").textContent = "Please paste a job description.";
+  const fd = new FormData();
+  fd.append("file", file); fd.append("job_title", $("title").value || "Untitled role"); fd.append("job_description", $("jd").value);
+  $("go").disabled = true; $("go").textContent = "Analyzing...";
+  try {
+    const r = await fetch("/analyze", {method:"POST", body: fd});
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.detail || "Something went wrong");
+    render(d);
+  } catch(e){ $("err").textContent = e.message; }
+  $("go").disabled = false; $("go").textContent = "Analyze resume";
+};
+
+function animateGauge(g, target){
+  const num = $("score"); g.classList.remove("done");
+  if (!window.matchMedia || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    g.style.setProperty("--p", target); num.textContent = Math.round(target); g.classList.add("done"); return;
+  }
+  const t0 = performance.now(), dur = 1300, ease = t => 1 - Math.pow(1 - t, 3);
+  (function tick(now){
+    const k = Math.min((now - t0) / dur, 1), v = target * ease(k);
+    g.style.setProperty("--p", v); num.textContent = Math.round(v);
+    if (k < 1) requestAnimationFrame(tick); else { num.textContent = Math.round(target); g.classList.add("done"); }
+  })(t0);
+}
+
+function render(d){
+  $("result").style.display = "block";
+  const g = $("gauge"); animateGauge(g, d.score);
+  g.style.setProperty("--c", d.score >= 40 ? "var(--accent2)" : "var(--bad)");
+  $("label").textContent = d.label;
+  $("who").textContent = d.candidate.name + " for " + d.job.title;
+  $("summary").textContent = d.summary;
+  chips($("matched"), d.matched, "ok"); chips($("missing"), d.missing, "no"); chips($("missingNice"), d.missing_nice || [], "soft");
+  const b = d.breakdown, rows = [
+    ["Required skills (" + b.required_skills.matched + "/" + b.required_skills.total + ")", b.required_skills.points],
+    ["Nice-to-have (" + b.nice_to_have.matched + "/" + b.nice_to_have.total + ")", b.nice_to_have.points],
+    ["Experience" + (b.experience.required_years ? " (" + (b.experience.candidate_years || 0) + " of " + b.experience.required_years + " yrs)" : ""), b.experience.points], ["Semantic similarity", b.semantic_match.points]];
+  $("bars").innerHTML = rows.map(([n,p], i) => '<div class="row"><span>'+n+'</span><span>'+p+'%</span></div><div class="bar"><i style="width:'+p+'%;--i:'+i+'"></i></div>').join("");
+  $("qs").innerHTML = d.questions.map(q => "<li></li>").join("");
+  [...$("qs").children].forEach((li,i) => { li.textContent = d.questions[i]; li.style.setProperty("--i", i); });
+  const card = $("result"); card.style.animation = "none"; void card.offsetWidth; card.style.animation = "";
+  $("result").scrollIntoView({behavior:"smooth"});
+}
+})();
+</script>
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+const el = (tag, attrs = {}, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else e.setAttribute(k, v);
+  }
+  kids.forEach(k => e.append(k));
+  return e;
+};
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.detail || "Request failed");
+  return d;
+}
+const chips = (box, items, cls) => {
+  box.replaceChildren();
+  if (!items.length) { box.append(el("span", {class: "muted", text: "None"})); return; }
+  items.forEach((s, i) => box.append(el("span", {class: "chip " + cls, text: s, style: "--i:" + i})));
+};
+
+let jobs = [], job = null, files = [], ranked = [];
+
+async function loadJobs(selectId) {
+  jobs = await api("/jobs");
+  const sel = $("r_jobSel");
+  sel.replaceChildren(el("option", {value: "", text: jobs.length ? "Choose a saved job..." : "No saved jobs yet"}));
+  jobs.forEach(j => sel.append(el("option", {value: j.id, text: "#" + j.id + "  " + j.title})));
+  if (selectId) { sel.value = String(selectId); await pickJob(selectId); }
+}
+
+async function pickJob(id) {
+  job = jobs.find(j => String(j.id) === String(id)) || null;
+  $("r_jobInfo").style.display = job ? "block" : "none";
+  $("r_uploadCard").style.display = job ? "block" : "none";
+  $("r_rankCard").style.display = job ? "block" : "none";
+  if (!job) return;
+  $("r_jobTitle").textContent = job.title;
+  chips($("r_reqChips"), job.required_skills, "ok");
+  chips($("r_niceChips"), job.nice_skills, "soft");
+  $("r_yearsInfo").textContent = job.min_years ? "Minimum experience: " + job.min_years + " yr(s)" : "No minimum experience detected";
+  await loadRanking();
+}
+
+$("r_jobSel").onchange = e => pickJob(e.target.value);
+
+$("r_saveJob").onclick = async () => {
+  $("r_jobErr").textContent = "";
+  if (!$("r_title").value.trim()) return $("r_jobErr").textContent = "Please enter a job title.";
+  if ($("r_jd").value.trim().length < 30) return $("r_jobErr").textContent = "Please paste a job description.";
+  const fd = new FormData();
+  fd.append("title", $("r_title").value); fd.append("description", $("r_jd").value);
+  try {
+    const j = await api("/jobs", {method: "POST", body: fd});
+    $("r_title").value = ""; $("r_jd").value = "";
+    await loadJobs(j.id);
+  } catch (e) { $("r_jobErr").textContent = e.message; }
+};
+
+const drop = $("r_drop"), input = $("r_files");
+function setFiles(list) {
+  files = [...list].filter(f => f.name.toLowerCase().endsWith(".pdf"));
+  drop.textContent = files.length ? files.length + " PDF(s) selected: " + files.map(f => f.name).join(", ") : "Click or drop one or more PDFs here";
+  drop.classList.toggle("on", files.length > 0);
+  $("r_go").disabled = files.length === 0;
+}
+drop.onclick = () => input.click();
+input.onchange = () => setFiles(input.files);
+drop.ondragover = e => { e.preventDefault(); drop.classList.add("on"); };
+drop.ondragleave = () => drop.classList.toggle("on", files.length > 0);
+drop.ondrop = e => { e.preventDefault(); setFiles(e.dataTransfer.files); };
+
+$("r_go").onclick = async () => {
+  if (!job || !files.length) return;
+  $("r_uploadErr").textContent = ""; $("r_go").disabled = true;
+  const failures = [];
+  for (let i = 0; i < files.length; i++) {
+    $("r_progress").textContent = "Analyzing " + (i + 1) + " of " + files.length + ": " + files[i].name;
+    const fd = new FormData();
+    fd.append("file", files[i]); fd.append("job_id", job.id);
+    try { await api("/analyze", {method: "POST", body: fd}); }
+    catch (e) { failures.push(files[i].name + ": " + e.message); }
+  }
+  $("r_progress").textContent = "Done. " + (files.length - failures.length) + " of " + files.length + " analyzed.";
+  $("r_uploadErr").textContent = failures.join("  |  ");
+  setFiles([]); input.value = "";
+  await loadRanking();
+};
+
+const badge = s => s >= 70 ? "b-hi" : s >= 45 ? "b-mid" : "b-lo";
+
+async function loadRanking() {
+  ranked = await api("/analyses?job_id=" + job.id);
+  const body = $("r_rows"); body.replaceChildren();
+  $("r_rankEmpty").style.display = ranked.length ? "none" : "block";
+  $("r_table").style.display = ranked.length ? "table" : "none";
+  ranked.forEach((a, i) => {
+    const b = a.breakdown, req = b.required_skills, ex = b.experience;
+    const bar = el("div", {class: "bar"}, el("i", {style: "width:" + Math.round(a.score) + "%"}));
+    const detail = el("tr", {style: "display:none"}, el("td", {colspan: "6"}, buildDetail(a)));
+    const row = el("tr", {class: "cand"},
+      el("td", {text: String(i + 1)}),
+      el("td", {text: a.candidate.name}),
+      el("td", {}, el("span", {class: "badge " + badge(a.score), text: String(Math.round(a.score))})),
+      el("td", {text: req.matched + "/" + req.total}),
+      el("td", {text: (ex.candidate_years || 0) + " yrs"}),
+      el("td", {}, bar));
+    row.style.setProperty("--i", i);
+    row.onclick = () => { detail.style.display = detail.style.display === "none" ? "table-row" : "none"; };
+    body.append(row, detail);
+  });
+}
+
+function buildDetail(a) {
+  const box = el("div", {class: "detail"});
+  box.append(el("div", {text: a.summary}));
+  const add = (title, items, cls) => { const c = el("div", {class: "chips"}); chips(c, items, cls); box.append(el("h4", {text: title}), c); };
+  add("Matched skills", a.matched, "ok");
+  add("Missing required skills", a.missing, "no");
+  add("Missing nice-to-have skills", a.missing_nice || [], "soft");
+  box.append(el("h4", {text: "Suggested interview questions"}));
+  const ol = el("ol"); a.questions.forEach(q => ol.append(el("li", {text: q}))); box.append(ol);
+  return box;
+}
+
+$("r_csv").onclick = () => {
+  const q = v => '"' + String(v).replace(/"/g, '""') + '"';
+  const lines = [["Rank", "Candidate", "Score", "Label", "Required matched", "Required total", "Missing required", "Experience years"].join(",")];
+  ranked.forEach((a, i) => lines.push([i + 1, q(a.candidate.name), a.score, q(a.label || ""), a.breakdown.required_skills.matched,
+    a.breakdown.required_skills.total, q(a.missing.join("; ")), a.breakdown.experience.candidate_years || 0].join(",")));
+  const url = URL.createObjectURL(new Blob([lines.join("\n")], {type: "text/csv"}));
+  const link = el("a", {href: url, download: "ranking_job_" + job.id + ".csv"});
+  document.body.append(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+};
+
+loadJobs().catch(e => { $("r_jobErr").textContent = e.message; });
+})();
+</script>
+<script>
+(function(){
+  const btns = document.querySelectorAll(".tabbtn");
+  const moveLine = () => {
+    const a = document.querySelector(".tabbtn.active"), l = document.getElementById("tabline");
+    if (a && l) { l.style.left = a.offsetLeft + "px"; l.style.width = a.offsetWidth + "px"; }
+  };
+  window.addEventListener("resize", moveLine); window.addEventListener("load", moveLine); moveLine();
+  btns.forEach(b => b.onclick = () => {
+    btns.forEach(x => x.classList.toggle("active", x === b)); moveLine();
+    document.getElementById("single").style.display = b.dataset.t === "single" ? "block" : "none";
+    document.getElementById("rank").style.display = b.dataset.t === "rank" ? "block" : "none";
+  });
+  const watch = (id, fn, opts) => { const n = document.getElementById(id); if (n) new MutationObserver(fn).observe(n, opts); };
+  watch("go", () => document.getElementById("go").classList.toggle("loading", document.getElementById("go").disabled), {attributes: true, attributeFilter: ["disabled"]});
+  watch("r_progress", () => {
+    const busy = /^Analyzing/.test(document.getElementById("r_progress").textContent);
+    document.getElementById("r_progress").classList.toggle("busy", busy);
+    document.getElementById("r_go").classList.toggle("loading", busy);
+  }, {childList: true, characterData: true, subtree: true});
+  ["err", "r_jobErr", "r_uploadErr"].forEach(id => watch(id, () => {
+    const n = document.getElementById(id);
+    if (n.textContent.trim()) { n.classList.remove("shake"); void n.offsetWidth; n.classList.add("shake"); }
+  }, {childList: true, characterData: true, subtree: true}));
+  fetch("/health").then(r => r.json()).then(h => {
+    if (h.demo_mode) document.getElementById("tabRank").style.display = "none";
+  }).catch(() => {});
+})();
+</script>
+</body>
+</html>
